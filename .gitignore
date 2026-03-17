@@ -1,0 +1,19 @@
+# Binary
+gateway-cli
+
+# Go
+*.exe
+*.out
+/vendor/
+
+# Schema cache
+.gateway-cli/
+
+# Environment
+.env
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
