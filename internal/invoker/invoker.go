@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/spf13/cobra"
 	mcpclient "mcp-gateway-cli/internal/mcp"
 	"mcp-gateway-cli/internal/schema"
@@ -49,6 +50,28 @@ func runTool(cmd *cobra.Command, endpoint schema.MCPEndpoint, toolName string, t
 	}
 
 	jsonOnly, _ := cmd.Root().PersistentFlags().GetBool("json")
+	textOnly, _ := cmd.Root().PersistentFlags().GetBool("text")
+
+	if jsonOnly && textOnly {
+		return fmt.Errorf("--json and --text are mutually exclusive")
+	}
+
+	if textOnly {
+		if len(result.Content) == 0 {
+			return fmt.Errorf("tool returned no content")
+		}
+		var text string
+		switch tc := result.Content[0].(type) {
+		case mcp.TextContent:
+			text = tc.Text
+		case *mcp.TextContent:
+			text = tc.Text
+		default:
+			return fmt.Errorf("first content item is not text (got %T)", result.Content[0])
+		}
+		fmt.Print(text)
+		return nil
+	}
 
 	var payload any
 	if jsonOnly {

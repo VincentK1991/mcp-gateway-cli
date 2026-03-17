@@ -65,6 +65,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&refreshSchema, "refresh-schema", false, "Force re-fetch schemas from all MCP servers, ignoring cache TTL")
 	rootCmd.PersistentFlags().BoolVar(&offline, "offline", false, "Use cached schema only, never contact MCP servers")
 	rootCmd.PersistentFlags().BoolP("json", "j", false, "Output only the structured content (useful for piping)")
+	rootCmd.PersistentFlags().BoolP("text", "t", false, "Output only the first text content item as a plain string (useful for piping)")
 }
 
 // buildToolCommands resolves the active schema and registers one subcommand
