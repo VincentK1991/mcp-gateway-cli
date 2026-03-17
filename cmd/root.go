@@ -11,6 +11,23 @@ import (
 	"mcp-gateway-cli/internal/schema"
 )
 
+// mcpEndpoints converts the loaded config into a map of schema.MCPEndpoint,
+// expanding any environment variable references in header values.
+func mcpEndpoints() map[string]schema.MCPEndpoint {
+	endpoints := make(map[string]schema.MCPEndpoint, len(cfg.MCPs))
+	for name, entry := range cfg.MCPs {
+		ep := schema.MCPEndpoint{URL: entry.URL}
+		if len(entry.Headers) > 0 {
+			ep.Headers = make(map[string]string, len(entry.Headers))
+			for k, v := range entry.Headers {
+				ep.Headers[k] = os.ExpandEnv(v)
+			}
+		}
+		endpoints[name] = ep
+	}
+	return endpoints
+}
+
 var (
 	cfgFile       string
 	refreshSchema bool
@@ -73,16 +90,16 @@ func buildToolCommands() error {
 		return err
 	}
 
-	mcpURLs := cfg.MCPURLs()
+	endpoints := mcpEndpoints()
 
 	for mcpName, mcp := range activeSchema.MCPs {
-		url := mcpURLs[mcpName]
+		ep := endpoints[mcpName]
 		mcpCmd := &cobra.Command{
 			Use:   mcpName,
 			Short: fmt.Sprintf("Tools from the '%s' MCP server", mcpName),
 		}
 		for toolName, tool := range mcp.Tools {
-			mcpCmd.AddCommand(invoker.BuildToolCommand(mcpName, toolName, tool, url))
+			mcpCmd.AddCommand(invoker.BuildToolCommand(mcpName, toolName, tool, ep))
 		}
 		rootCmd.AddCommand(mcpCmd)
 	}
@@ -108,7 +125,7 @@ func resolveSchema() (*schema.GatewaySchema, error) {
 		return cached, nil
 	}
 
-	fetched, err := schema.FetchAll(cfg.MCPURLs())
+	fetched, err := schema.FetchAll(mcpEndpoints())
 	if err != nil {
 		return nil, err
 	}

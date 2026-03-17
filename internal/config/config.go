@@ -10,7 +10,8 @@ import (
 
 // MCPEntry holds connection config for a single MCP server.
 type MCPEntry struct {
-	URL string `mapstructure:"url"`
+	URL     string            `mapstructure:"url"`
+	Headers map[string]string `mapstructure:"headers"`
 }
 
 // Config is the top-level config loaded from ~/.gateway-cli/config.yaml.

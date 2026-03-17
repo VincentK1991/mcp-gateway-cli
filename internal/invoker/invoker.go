@@ -11,12 +11,12 @@ import (
 
 // BuildToolCommand creates a Cobra subcommand for a specific MCP tool.
 // Flags are generated dynamically from the tool's input schema.
-func BuildToolCommand(mcpName, toolName string, tool schema.Tool, url string) *cobra.Command {
+func BuildToolCommand(mcpName, toolName string, tool schema.Tool, endpoint schema.MCPEndpoint) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   toolName,
 		Short: tool.Description,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runTool(cmd, url, toolName, tool)
+			return runTool(cmd, endpoint, toolName, tool)
 		},
 	}
 
@@ -35,7 +35,7 @@ func BuildToolCommand(mcpName, toolName string, tool schema.Tool, url string) *c
 	return cmd
 }
 
-func runTool(cmd *cobra.Command, url, toolName string, tool schema.Tool) error {
+func runTool(cmd *cobra.Command, endpoint schema.MCPEndpoint, toolName string, tool schema.Tool) error {
 	params := make(map[string]interface{}, len(tool.InputSchema.Properties))
 	for name := range tool.InputSchema.Properties {
 		if val, err := cmd.Flags().GetString(name); err == nil && val != "" {
@@ -43,7 +43,7 @@ func runTool(cmd *cobra.Command, url, toolName string, tool schema.Tool) error {
 		}
 	}
 
-	result, err := mcpclient.CallTool(url, toolName, params)
+	result, err := mcpclient.CallTool(endpoint.URL, toolName, params, endpoint.Headers)
 	if err != nil {
 		return err
 	}

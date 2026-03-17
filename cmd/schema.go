@@ -16,10 +16,10 @@ var schemaRefreshCmd = &cobra.Command{
 	Use:   "refresh",
 	Short: "Fetch schemas from all registered MCP servers and update the cache",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		mcpURLs := cfg.MCPURLs()
-		fmt.Printf("Fetching schemas from %d MCP server(s)...\n", len(mcpURLs))
+		endpoints := mcpEndpoints()
+		fmt.Printf("Fetching schemas from %d MCP server(s)...\n", len(endpoints))
 
-		fetched, err := schema.FetchAll(mcpURLs)
+		fetched, err := schema.FetchAll(endpoints)
 		if err != nil {
 			return fmt.Errorf("fetch failed: %w", err)
 		}
