@@ -2,6 +2,13 @@ package schema
 
 import "time"
 
+// MCPEndpoint holds the URL and optional HTTP headers for a single MCP server.
+// Header values support environment variable expansion (e.g. "Bearer ${MY_TOKEN}").
+type MCPEndpoint struct {
+	URL     string
+	Headers map[string]string
+}
+
 // GatewaySchema is the top-level structure holding all cached MCP tool schemas.
 type GatewaySchema struct {
 	LastFetch time.Time      `json:"lastFetch"`

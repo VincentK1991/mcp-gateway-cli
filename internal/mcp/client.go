@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -14,8 +15,14 @@ const (
 )
 
 // connect creates and initializes a streamable HTTP client for the given URL.
-func connect(ctx context.Context, url string) (*client.Client, error) {
-	c, err := client.NewStreamableHttpClient(url)
+// headers are added to every request sent to the server.
+func connect(ctx context.Context, url string, headers map[string]string) (*client.Client, error) {
+	var opts []transport.StreamableHTTPCOption
+	if len(headers) > 0 {
+		opts = append(opts, transport.WithHTTPHeaders(headers))
+	}
+
+	c, err := client.NewStreamableHttpClient(url, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client for %s: %w", url, err)
 	}
@@ -37,10 +44,10 @@ func connect(ctx context.Context, url string) (*client.Client, error) {
 }
 
 // FetchTools connects to an MCP server and returns its available tools.
-func FetchTools(url string) (map[string]mcp.Tool, error) {
+func FetchTools(url string, headers map[string]string) (map[string]mcp.Tool, error) {
 	ctx := context.Background()
 
-	c, err := connect(ctx, url)
+	c, err := connect(ctx, url, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -59,10 +66,10 @@ func FetchTools(url string) (map[string]mcp.Tool, error) {
 }
 
 // CallTool connects to an MCP server, calls a tool with the given params, and returns the result.
-func CallTool(url, toolName string, params map[string]interface{}) (*mcp.CallToolResult, error) {
+func CallTool(url, toolName string, params map[string]interface{}, headers map[string]string) (*mcp.CallToolResult, error) {
 	ctx := context.Background()
 
-	c, err := connect(ctx, url)
+	c, err := connect(ctx, url, headers)
 	if err != nil {
 		return nil, err
 	}

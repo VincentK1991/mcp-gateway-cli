@@ -10,14 +10,14 @@ import (
 
 // FetchAll queries each registered MCP server and returns the combined schema.
 // Servers that fail are skipped with a warning — a partial result is still returned.
-func FetchAll(mcpURLs map[string]string) (*GatewaySchema, error) {
+func FetchAll(endpoints map[string]MCPEndpoint) (*GatewaySchema, error) {
 	gs := newGatewaySchema()
 	gs.LastFetch = time.Now()
 
-	for name, url := range mcpURLs {
-		tools, err := mcpclient.FetchTools(url)
+	for name, ep := range endpoints {
+		tools, err := mcpclient.FetchTools(ep.URL, ep.Headers)
 		if err != nil {
-			fmt.Printf("Warning: skipping MCP '%s' (%s): %v\n", name, url, err)
+			fmt.Printf("Warning: skipping MCP '%s' (%s): %v\n", name, ep.URL, err)
 			continue
 		}
 
