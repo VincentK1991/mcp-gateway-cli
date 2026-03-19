@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"mcp-gateway-cli/internal/config"
-	"mcp-gateway-cli/internal/invoker"
-	"mcp-gateway-cli/internal/schema"
+	"github.com/VincentK1991/mcp-gateway-cli/internal/config"
+	"github.com/VincentK1991/mcp-gateway-cli/internal/invoker"
+	"github.com/VincentK1991/mcp-gateway-cli/internal/schema"
+	"github.com/VincentK1991/mcp-gateway-cli/internal/updater"
 )
 
 // mcpEndpoints converts the loaded config into a map of schema.MCPEndpoint,
@@ -36,9 +37,10 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "gateway-cli",
-	Short: "A CLI to interact with MCP servers",
-	Long:  `gateway-cli fetches and caches tool schemas from configured MCP servers and exposes them as CLI commands.`,
+	Use:     "gateway-cli",
+	Short:   "A CLI to interact with MCP servers",
+	Long:    `gateway-cli fetches and caches tool schemas from configured MCP servers and exposes them as CLI commands.`,
+	Version: Version,
 }
 
 // Execute is the entrypoint called from main.
@@ -49,6 +51,8 @@ func Execute() {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(1)
 	}
+
+	go updater.Check(Version)
 
 	// Build dynamic tool commands before Cobra routes the command.
 	if err := buildToolCommands(); err != nil {

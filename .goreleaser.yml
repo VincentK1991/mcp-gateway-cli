@@ -1,0 +1,65 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: gateway-cli
+    main: ./
+    binary: gateway-cli
+    ldflags:
+      - -s -w -X github.com/VincentK1991/mcp-gateway-cli/cmd.Version={{.Version}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "gateway-cli_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+release:
+  github:
+    owner: VincentK1991
+    name: mcp-gateway-cli
+  draft: false
+  prerelease: auto  # tags like v1.0.0-rc.1 are marked pre-release automatically
+
+brews:
+  - name: gateway-cli
+    repository:
+      owner: VincentK1991
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    homepage: https://github.com/VincentK1991/mcp-gateway-cli
+    description: "CLI gateway for interacting with remote MCP servers"
+    license: MIT
+    install: |
+      bin.install "gateway-cli"
+    test: |
+      system "#{bin}/gateway-cli --version"

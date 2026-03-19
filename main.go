@@ -1,7 +1,7 @@
 package main
 
 import (
-	"mcp-gateway-cli/cmd"
+	"github.com/VincentK1991/mcp-gateway-cli/cmd"
 )
 
 func main() {

@@ -6,8 +6,8 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/spf13/cobra"
-	mcpclient "mcp-gateway-cli/internal/mcp"
-	"mcp-gateway-cli/internal/schema"
+	mcpclient "github.com/VincentK1991/mcp-gateway-cli/internal/mcp"
+	"github.com/VincentK1991/mcp-gateway-cli/internal/schema"
 )
 
 // BuildToolCommand creates a Cobra subcommand for a specific MCP tool.

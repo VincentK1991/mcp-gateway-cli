@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"mcp-gateway-cli/internal/schema"
+	"github.com/VincentK1991/mcp-gateway-cli/internal/schema"
 )
 
 var schemaCmd = &cobra.Command{
