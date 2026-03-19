@@ -54,6 +54,30 @@ mcps:
 
 Each entry needs a name (used as the CLI subcommand) and the URL of the MCP server's `/mcp` endpoint.
 
+For MCP servers that require authentication or custom headers, add a `headers` block:
+
+```yaml
+mcps:
+  calculator:
+    url: http://localhost:8000/mcp
+  my-api:
+    url: https://api.example.com/mcp
+    headers:
+      Authorization: "Bearer mytoken"
+  another-api:
+    url: https://other.example.com/mcp
+    headers:
+      Authorization: "Bearer ${MY_API_TOKEN}"   # reads from environment variable
+      X-Tenant-Id: "acme"
+```
+
+Header values support environment variable expansion — use `${VAR}` to avoid storing secrets directly in the config file. Set the variable in your shell before running any command:
+
+```bash
+export MY_API_TOKEN="your-secret-token"
+gateway-cli my-api some-tool --flag value
+```
+
 After editing the config, refresh the schema cache:
 
 ```bash
