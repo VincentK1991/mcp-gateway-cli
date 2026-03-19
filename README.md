@@ -6,25 +6,36 @@ A command-line tool for interacting with [MCP](https://modelcontextprotocol.io) 
 
 ## Installation
 
-**Prerequisites:** Go 1.23+
+### Homebrew (macOS and Linux)
 
 ```bash
-git clone https://github.com/vkieuvongngam/gateway-cli
-cd gateway-cli
-go install .
+brew install VincentK1991/tap/gateway-cli
 ```
 
-Add Go's bin directory to your PATH if you haven't already:
+### curl (macOS and Linux)
 
 ```bash
-echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
+curl -fsSL https://raw.githubusercontent.com/VincentK1991/mcp-gateway-cli/main/install.sh | bash
 ```
 
-Verify:
+This detects your OS and architecture, downloads the correct binary from the latest GitHub release, verifies the checksum, and installs to `/usr/local/bin`.
+
+To install a specific version:
 
 ```bash
-gateway-cli --help
+VERSION=v1.2.0 curl -fsSL https://raw.githubusercontent.com/VincentK1991/mcp-gateway-cli/main/install.sh | bash
+```
+
+### Go install (requires Go 1.23+)
+
+```bash
+go install github.com/VincentK1991/mcp-gateway-cli@latest
+```
+
+### Verify installation
+
+```bash
+gateway-cli --version
 ```
 
 ---
@@ -185,6 +196,25 @@ Flags available on every command:
 | Flag | Description |
 |---|---|
 | `--json`, `-j` | Output structured content only (no MCP envelope) |
+| `--text`, `-t` | Output the first text content item as a plain string |
 | `--refresh-schema` | Re-fetch schema before running the command |
 | `--offline` | Use cached schema only, never contact MCP servers |
 | `--config` | Path to a custom config file |
+
+### Checking and updating your version
+
+```bash
+# Show installed version
+gateway-cli --version
+
+# Homebrew
+brew upgrade gateway-cli
+
+# curl (re-runs the installer, overwrites the binary)
+curl -fsSL https://raw.githubusercontent.com/VincentK1991/mcp-gateway-cli/main/install.sh | bash
+
+# Go install
+go install github.com/VincentK1991/mcp-gateway-cli@latest
+```
+
+gateway-cli also checks for new releases automatically in the background (at most once per day) and prints a reminder to stderr when one is available.
