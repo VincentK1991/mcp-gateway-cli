@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	mcpclient "mcp-gateway-cli/internal/mcp"
+	mcpclient "github.com/VincentK1991/mcp-gateway-cli/internal/mcp"
 	mcptype "github.com/mark3labs/mcp-go/mcp"
 )
 

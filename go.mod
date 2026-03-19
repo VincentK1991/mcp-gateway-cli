@@ -1,4 +1,4 @@
-module mcp-gateway-cli
+module github.com/VincentK1991/mcp-gateway-cli
 
 go 1.23.0
 
