@@ -111,11 +111,10 @@ func runTool(cmd *cobra.Command, endpoint schema.MCPEndpoint, toolName string, t
 		return fmt.Errorf("failed to encode result: %w", err)
 	}
 
-	// Write to file only when: output is oversized, stdout is an interactive
-	// terminal (not piped), and the user has not requested a pipe-friendly mode
-	// (--json / --text signal explicit piping intent).
-	pipeMode := jsonOnly || textOnly
-	if !pipeMode && isTerminal() && len(out) > maxOutputChars {
+	// Write to file only when: output is oversized and stdout is an interactive
+	// terminal. If stdout is a pipe or redirect, another program is consuming
+	// the output, so always pass it through unchanged.
+	if isTerminal() && len(out) > maxOutputChars {
 		filename, writeErr := writeOutputToFile(out, "json")
 		if writeErr == nil {
 			fmt.Fprintf(os.Stderr, "Output too large (%d KB, ~%d tokens) — written to: %s\n",
