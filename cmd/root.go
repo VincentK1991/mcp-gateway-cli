@@ -15,8 +15,12 @@ import (
 // mcpEndpoints converts the loaded config into a map of schema.MCPEndpoint,
 // expanding any environment variable references in header values.
 func mcpEndpoints() map[string]schema.MCPEndpoint {
-	endpoints := make(map[string]schema.MCPEndpoint, len(cfg.MCPs))
-	for name, entry := range cfg.MCPs {
+	mcps, err := cfg.ActiveMCPs(profileOverride)
+	if err != nil {
+		return nil
+	}
+	endpoints := make(map[string]schema.MCPEndpoint, len(mcps))
+	for name, entry := range mcps {
 		ep := schema.MCPEndpoint{URL: entry.URL}
 		if len(entry.Headers) > 0 {
 			ep.Headers = make(map[string]string, len(entry.Headers))
@@ -30,10 +34,11 @@ func mcpEndpoints() map[string]schema.MCPEndpoint {
 }
 
 var (
-	cfgFile       string
-	refreshSchema bool
-	offline       bool
-	cfg           *config.Config
+	cfgFile        string
+	profileOverride string
+	refreshSchema  bool
+	offline        bool
+	cfg            *config.Config
 )
 
 var rootCmd = &cobra.Command{
@@ -66,6 +71,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: ~/.gateway-cli/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&profileOverride, "profile", "", "Use a specific profile for this command (overrides current-profile)")
 	rootCmd.PersistentFlags().BoolVar(&refreshSchema, "refresh-schema", false, "Force re-fetch schemas from all MCP servers, ignoring cache TTL")
 	rootCmd.PersistentFlags().BoolVar(&offline, "offline", false, "Use cached schema only, never contact MCP servers")
 	rootCmd.PersistentFlags().BoolP("json", "j", false, "Output only the structured content (useful for piping)")
@@ -76,17 +82,22 @@ func init() {
 // per MCP server and tool discovered.
 func buildToolCommands() error {
 	// Skip schema loading for built-in management commands.
-	if len(os.Args) > 1 && (os.Args[1] == "schema" || os.Args[1] == "help") {
+	if len(os.Args) > 1 && (os.Args[1] == "schema" || os.Args[1] == "help" || os.Args[1] == "profile") {
 		return nil
 	}
 
 	// Parse flags manually so they're available before Cobra routes.
-	for _, a := range os.Args[1:] {
+	args := os.Args[1:]
+	for i, a := range args {
 		switch a {
 		case "--refresh-schema":
 			refreshSchema = true
 		case "--offline":
 			offline = true
+		case "--profile":
+			if i+1 < len(args) {
+				profileOverride = args[i+1]
+			}
 		}
 	}
 
@@ -114,7 +125,12 @@ func buildToolCommands() error {
 
 // resolveSchema returns a valid GatewaySchema either from cache or by fetching.
 func resolveSchema() (*schema.GatewaySchema, error) {
-	cached, cacheErr := schema.LoadCache()
+	activeProfile := cfg.ActiveProfile(profileOverride)
+	if activeProfile == "" {
+		return nil, fmt.Errorf("no active profile set; run 'gateway-cli profile use <name>'")
+	}
+
+	cached, cacheErr := schema.LoadCache(activeProfile)
 	cacheOK := cacheErr == nil && cached != nil
 
 	needsFetch := refreshSchema || !cacheOK || schema.IsStale(cached, schema.DefaultTTL)
@@ -135,7 +151,7 @@ func resolveSchema() (*schema.GatewaySchema, error) {
 		return nil, err
 	}
 
-	if saveErr := schema.SaveCache(fetched); saveErr != nil {
+	if saveErr := schema.SaveCache(fetched, activeProfile); saveErr != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to save schema cache: %v\n", saveErr)
 	}
 
