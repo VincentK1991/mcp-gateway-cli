@@ -15,10 +15,23 @@ func FetchAll(endpoints map[string]MCPEndpoint) (*GatewaySchema, error) {
 	gs.LastFetch = time.Now()
 
 	for name, ep := range endpoints {
-		tools, err := mcpclient.FetchTools(ep.URL, ep.Headers)
-		if err != nil {
-			fmt.Printf("Warning: skipping MCP '%s' (%s): %v\n", name, ep.URL, err)
-			continue
+		var (
+			tools map[string]mcptype.Tool
+			err   error
+		)
+		switch ep.Transport {
+		case TransportStdio:
+			tools, err = mcpclient.FetchToolsStdio(ep.Command, ep.Args, ep.Env)
+			if err != nil {
+				fmt.Printf("Warning: skipping stdio MCP '%s' (%s): %v\n", name, ep.Command, err)
+				continue
+			}
+		default: // TransportHTTP
+			tools, err = mcpclient.FetchTools(ep.URL, ep.Headers)
+			if err != nil {
+				fmt.Printf("Warning: skipping MCP '%s' (%s): %v\n", name, ep.URL, err)
+				continue
+			}
 		}
 
 		entry := MCP{

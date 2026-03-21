@@ -44,7 +44,13 @@ func runTool(cmd *cobra.Command, endpoint schema.MCPEndpoint, toolName string, t
 		}
 	}
 
-	result, err := mcpclient.CallTool(endpoint.URL, toolName, params, endpoint.Headers)
+	var result *mcp.CallToolResult
+	var err error
+	if endpoint.Transport == schema.TransportStdio {
+		result, err = mcpclient.CallToolStdio(endpoint.Command, endpoint.Args, endpoint.Env, toolName, params)
+	} else {
+		result, err = mcpclient.CallTool(endpoint.URL, toolName, params, endpoint.Headers)
+	}
 	if err != nil {
 		return err
 	}

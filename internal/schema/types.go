@@ -2,11 +2,28 @@ package schema
 
 import "time"
 
-// MCPEndpoint holds the URL and optional HTTP headers for a single MCP server.
-// Header values support environment variable expansion (e.g. "Bearer ${MY_TOKEN}").
+// Transport identifies how the gateway connects to an MCP server.
+type Transport string
+
+const (
+	TransportHTTP  Transport = "http"
+	TransportStdio Transport = "stdio"
+)
+
+// MCPEndpoint holds the connection details for a single MCP server.
+// Set Transport=TransportHTTP and fill URL/Headers for remote servers.
+// Set Transport=TransportStdio and fill Command/Args/Env for local subprocess servers.
 type MCPEndpoint struct {
+	Transport Transport
+
+	// HTTP fields
 	URL     string
 	Headers map[string]string
+
+	// Stdio fields
+	Command string
+	Args    []string
+	Env     []string // KEY=VALUE pairs passed to the subprocess
 }
 
 // GatewaySchema is the top-level structure holding all cached MCP tool schemas.
