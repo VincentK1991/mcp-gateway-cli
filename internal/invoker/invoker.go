@@ -78,7 +78,7 @@ func BuildToolCommand(mcpName, toolName string, tool schema.Tool, endpoint schem
 	for name, prop := range tool.InputSchema.Properties {
 		cmd.Flags().String(name, "", prop.Description)
 		if required[name] {
-			cmd.MarkFlagRequired(name)
+			_ = cmd.MarkFlagRequired(name)
 		}
 	}
 
