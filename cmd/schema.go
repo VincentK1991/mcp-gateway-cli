@@ -23,7 +23,9 @@ var schemaRefreshCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("fetch failed: %w", err)
 		}
-		if err := schema.SaveCache(fetched); err != nil {
+
+		activeProfile := cfg.ActiveProfile(profileOverride)
+		if err := schema.SaveCache(fetched, activeProfile); err != nil {
 			return fmt.Errorf("failed to save cache: %w", err)
 		}
 
@@ -36,7 +38,8 @@ var schemaInfoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "Show details about the currently cached schema",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cached, err := schema.LoadCache()
+		activeProfile := cfg.ActiveProfile(profileOverride)
+		cached, err := schema.LoadCache(activeProfile)
 		if err != nil {
 			return fmt.Errorf("no cache available: %w", err)
 		}
@@ -46,6 +49,7 @@ var schemaInfoCmd = &cobra.Command{
 			toolCount += len(mcp.Tools)
 		}
 
+		fmt.Printf("Profile      : %s\n", activeProfile)
 		fmt.Printf("Last fetched : %s\n", cached.LastFetch.Format("2006-01-02 15:04:05"))
 		fmt.Printf("MCP servers  : %d\n", len(cached.MCPs))
 		fmt.Printf("Total tools  : %d\n", toolCount)
@@ -62,12 +66,13 @@ var schemaInfoCmd = &cobra.Command{
 
 var schemaInvalidateCmd = &cobra.Command{
 	Use:   "invalidate",
-	Short: "Delete the local schema cache",
+	Short: "Delete the local schema cache for the active profile",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := schema.InvalidateCache(); err != nil {
+		activeProfile := cfg.ActiveProfile(profileOverride)
+		if err := schema.InvalidateCache(activeProfile); err != nil {
 			return fmt.Errorf("failed to invalidate cache: %w", err)
 		}
-		fmt.Println("Cache invalidated.")
+		fmt.Printf("Cache invalidated for profile %q.\n", activeProfile)
 		return nil
 	},
 }

@@ -5,25 +5,31 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 )
 
-const (
-	cacheFileName = "schema-cache.json"
-	DefaultTTL    = 1 * time.Hour
-)
+const DefaultTTL = 1 * time.Hour
 
-func cachePath() (string, error) {
+var unsafeChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
+
+// sanitizeProfileName replaces characters that are unsafe in filenames with "-".
+func sanitizeProfileName(p string) string {
+	return unsafeChars.ReplaceAllString(p, "-")
+}
+
+func cachePath(profile string) (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".gateway-cli", cacheFileName), nil
+	name := fmt.Sprintf("schema-cache-%s.json", sanitizeProfileName(profile))
+	return filepath.Join(home, ".gateway-cli", name), nil
 }
 
-// LoadCache reads the cached GatewaySchema from disk.
-func LoadCache() (*GatewaySchema, error) {
-	path, err := cachePath()
+// LoadCache reads the cached GatewaySchema from disk for the given profile.
+func LoadCache(profile string) (*GatewaySchema, error) {
+	path, err := cachePath(profile)
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +49,9 @@ func LoadCache() (*GatewaySchema, error) {
 	return &gs, nil
 }
 
-// SaveCache writes the GatewaySchema to disk.
-func SaveCache(gs *GatewaySchema) error {
-	path, err := cachePath()
+// SaveCache writes the GatewaySchema to disk for the given profile.
+func SaveCache(gs *GatewaySchema, profile string) error {
+	path, err := cachePath(profile)
 	if err != nil {
 		return err
 	}
@@ -62,9 +68,9 @@ func IsStale(gs *GatewaySchema, ttl time.Duration) bool {
 	return gs == nil || gs.LastFetch.IsZero() || time.Since(gs.LastFetch) > ttl
 }
 
-// InvalidateCache deletes the cache file.
-func InvalidateCache() error {
-	path, err := cachePath()
+// InvalidateCache deletes the cache file for the given profile.
+func InvalidateCache(profile string) error {
+	path, err := cachePath(profile)
 	if err != nil {
 		return err
 	}
