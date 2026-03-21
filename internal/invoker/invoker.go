@@ -3,12 +3,38 @@ package invoker
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/spf13/cobra"
 	mcpclient "github.com/VincentK1991/mcp-gateway-cli/internal/mcp"
 	"github.com/VincentK1991/mcp-gateway-cli/internal/schema"
 )
+
+// maxOutputChars is the threshold above which output is written to a file
+// instead of stdout. 40,000 chars ≈ 10,000 tokens at ~4 chars/token.
+const maxOutputChars = 40_000
+
+// isTerminal reports whether stdout is an interactive terminal (not a pipe or redirect).
+func isTerminal() bool {
+	fi, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (fi.Mode() & os.ModeCharDevice) != 0
+}
+
+// writeOutputToFile writes data to a timestamped file in the current directory
+// and returns the filename.
+func writeOutputToFile(data []byte, ext string) (string, error) {
+	timestamp := time.Now().Format("20060102-150405")
+	filename := fmt.Sprintf("gateway-output-%s.%s", timestamp, ext)
+	if err := os.WriteFile(filename, data, 0644); err != nil {
+		return "", err
+	}
+	return filename, nil
+}
 
 // BuildToolCommand creates a Cobra subcommand for a specific MCP tool.
 // Flags are generated dynamically from the tool's input schema.
@@ -83,6 +109,21 @@ func runTool(cmd *cobra.Command, endpoint schema.MCPEndpoint, toolName string, t
 	out, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to encode result: %w", err)
+	}
+
+	// Write to file only when: output is oversized, stdout is an interactive
+	// terminal (not piped), and the user has not requested a pipe-friendly mode
+	// (--json / --text signal explicit piping intent).
+	pipeMode := jsonOnly || textOnly
+	if !pipeMode && isTerminal() && len(out) > maxOutputChars {
+		filename, writeErr := writeOutputToFile(out, "json")
+		if writeErr == nil {
+			fmt.Fprintf(os.Stderr, "Output too large (%d KB, ~%d tokens) — written to: %s\n",
+				len(out)/1024, len(out)/4, filename)
+			return nil
+		}
+		// Fall back to stdout if the file write fails.
+		fmt.Fprintf(os.Stderr, "Warning: could not write output file (%v); printing to stdout\n", writeErr)
 	}
 
 	fmt.Println(string(out))
