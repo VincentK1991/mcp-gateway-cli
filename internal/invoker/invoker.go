@@ -3,7 +3,9 @@ package invoker
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -25,15 +27,36 @@ func isTerminal() bool {
 	return (fi.Mode() & os.ModeCharDevice) != 0
 }
 
-// writeOutputToFile writes data to a timestamped file in the current directory
-// and returns the filename.
-func writeOutputToFile(data []byte, ext string) (string, error) {
+// writeOutputToFile writes data to a timestamped file and returns the path.
+// dir is the target directory; an empty string means the current directory.
+func writeOutputToFile(data []byte, ext string, dir string) (string, error) {
+	if dir == "" {
+		dir = "."
+	}
 	timestamp := time.Now().Format("20060102-150405")
-	filename := fmt.Sprintf("gateway-output-%s.%s", timestamp, ext)
+	filename := filepath.Join(dir, fmt.Sprintf("gateway-output-%s.%s", timestamp, ext))
 	if err := os.WriteFile(filename, data, 0644); err != nil {
 		return "", err
 	}
 	return filename, nil
+}
+
+// routeOutput writes out to w unless the output is oversized and terminal is
+// true, in which case it writes to a timestamped file in dir (empty = current
+// directory) and notifies via stderr. Falls back to w if the file write fails.
+func routeOutput(out []byte, ext string, w io.Writer, stderr io.Writer, terminal bool, dir string) error {
+	if terminal && len(out) > maxOutputChars {
+		filename, writeErr := writeOutputToFile(out, ext, dir)
+		if writeErr == nil {
+			fmt.Fprintf(stderr, "Output too large (%d KB, ~%d tokens) — written to: %s\n",
+				len(out)/1024, len(out)/4, filename)
+			return nil
+		}
+		// Fall back to w if the file write fails.
+		fmt.Fprintf(stderr, "Warning: could not write output file (%v); printing to stdout\n", writeErr)
+	}
+	fmt.Fprintln(w, string(out))
+	return nil
 }
 
 // BuildToolCommand creates a Cobra subcommand for a specific MCP tool.
@@ -111,20 +134,5 @@ func runTool(cmd *cobra.Command, endpoint schema.MCPEndpoint, toolName string, t
 		return fmt.Errorf("failed to encode result: %w", err)
 	}
 
-	// Write to file only when: output is oversized and stdout is an interactive
-	// terminal. If stdout is a pipe or redirect, another program is consuming
-	// the output, so always pass it through unchanged.
-	if isTerminal() && len(out) > maxOutputChars {
-		filename, writeErr := writeOutputToFile(out, "json")
-		if writeErr == nil {
-			fmt.Fprintf(os.Stderr, "Output too large (%d KB, ~%d tokens) — written to: %s\n",
-				len(out)/1024, len(out)/4, filename)
-			return nil
-		}
-		// Fall back to stdout if the file write fails.
-		fmt.Fprintf(os.Stderr, "Warning: could not write output file (%v); printing to stdout\n", writeErr)
-	}
-
-	fmt.Println(string(out))
-	return nil
+	return routeOutput(out, "json", os.Stdout, os.Stderr, isTerminal(), "")
 }

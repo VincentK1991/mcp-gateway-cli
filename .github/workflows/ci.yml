@@ -22,3 +22,30 @@ jobs:
 
       - name: Vet
         run: go vet ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Coverage (invoker)
+        run: |
+          # Run coverage only on the invoker package — the only package with unit tests.
+          # Other packages (cmd, mcp, schema, config, updater) require a live MCP server
+          # and belong to integration tests (tracked separately).
+          go test -coverprofile=coverage.out ./internal/invoker/
+          go tool cover -func=coverage.out
+
+          # Gate: 25% on the invoker package overall.
+          # routeOutput and writeOutputToFile (the new feature) are at 100%.
+          # BuildToolCommand and runTool need a live MCP server — raise this
+          # threshold once integration tests are added.
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "Invoker package coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 25" | bc -l) )); then
+            echo "Coverage ${COVERAGE}% is below the 25% threshold"
+            exit 1
+          fi
