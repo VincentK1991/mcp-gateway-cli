@@ -9,9 +9,18 @@ import (
 )
 
 // MCPEntry holds connection config for a single MCP server.
+// For HTTP servers set URL (and optionally Headers).
+// For stdio servers set Command (and optionally Args and Env).
 type MCPEntry struct {
+	// HTTP transport
 	URL     string            `mapstructure:"url"`
 	Headers map[string]string `mapstructure:"headers"`
+
+	// Stdio transport — Command is the executable, Args are its arguments,
+	// Env are extra environment variables in KEY=VALUE format.
+	Command string            `mapstructure:"command"`
+	Args    []string          `mapstructure:"args"`
+	Env     map[string]string `mapstructure:"env"`
 }
 
 // Config is the top-level config loaded from ~/.gateway-cli/config.yaml.

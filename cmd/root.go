@@ -13,18 +13,36 @@ import (
 )
 
 // mcpEndpoints converts the loaded config into a map of schema.MCPEndpoint,
-// expanding any environment variable references in header values.
+// expanding any environment variable references in header/env values.
+// An entry with a Command field uses stdio transport; otherwise HTTP.
 func mcpEndpoints() map[string]schema.MCPEndpoint {
 	endpoints := make(map[string]schema.MCPEndpoint, len(cfg.MCPs))
 	for name, entry := range cfg.MCPs {
-		ep := schema.MCPEndpoint{URL: entry.URL}
-		if len(entry.Headers) > 0 {
-			ep.Headers = make(map[string]string, len(entry.Headers))
-			for k, v := range entry.Headers {
-				ep.Headers[k] = os.ExpandEnv(v)
+		if entry.Command != "" {
+			// Stdio transport
+			ep := schema.MCPEndpoint{
+				Transport: schema.TransportStdio,
+				Command:   entry.Command,
+				Args:      entry.Args,
 			}
+			for k, v := range entry.Env {
+				ep.Env = append(ep.Env, k+"="+os.ExpandEnv(v))
+			}
+			endpoints[name] = ep
+		} else {
+			// HTTP transport
+			ep := schema.MCPEndpoint{
+				Transport: schema.TransportHTTP,
+				URL:       entry.URL,
+			}
+			if len(entry.Headers) > 0 {
+				ep.Headers = make(map[string]string, len(entry.Headers))
+				for k, v := range entry.Headers {
+					ep.Headers[k] = os.ExpandEnv(v)
+				}
+			}
+			endpoints[name] = ep
 		}
-		endpoints[name] = ep
 	}
 	return endpoints
 }
